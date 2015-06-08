@@ -1,4 +1,4 @@
-title ~~ PWARE SKEG v1.0 ~~
+title ~~ PWARE SKEG v1.1 ~~
 author Brian Stottler       ■
 homepage www.puzzlescript.net
 
@@ -18,7 +18,7 @@ Gray
 Wall 
 White
 
-One
+OneNormal
 Red
 .....
 .....
@@ -26,7 +26,7 @@ Red
 .....
 .....
 
-Two
+TwoNormal
 Red DarkRed
 .....
 .000.
@@ -34,7 +34,7 @@ Red DarkRed
 .000.
 .....
 
-Three
+ThreeNormal
 Red DarkRed
 00000
 01110
@@ -50,31 +50,37 @@ Red
 0....
 ..00.
 
-(Original gates:
-OneGate
-Gray DarkGray White LightBlue
-22022
-20002
-00300
-20002
-22022
+OneKey
+Yellow
+.....
+.....
+..0..
+.....
+.....
 
-TwoGate
-Gray DarkGray White Blue
-20102
-00030
-10001
-03000
-20102
+TwoKey
+Yellow Brown
+.....
+.000.
+.010.
+.000.
+.....
 
-ThreeGate
-Gray DarkGray White Purple
+ThreeKey
+Yellow Brown
+00000
 01110
-10031
-10301
-13001
 01110
-)
+01110
+00000
+
+DeadKey
+Yellow
+.0...
+...00
+.0.0.
+0....
+..00.
 
 OneGate
 Gray Black
@@ -124,6 +130,54 @@ LightGreen
 .0.0.
 ..0..
 
+Key
+Yellow
+.....
+000..
+0.000
+000.0
+.....
+
+LockedDoor
+DarkGray Brown Black
+00000
+02220
+00200
+00200
+00000
+
+ForceLeft
+Blue
+.....
+.0...
+00000
+.0...
+.....
+
+ForceRight
+Blue
+.....
+...0.
+00000
+...0.
+.....
+
+ForceUp
+Blue
+..0..
+.000.
+..0..
+..0..
+..0..
+
+ForceDown
+Blue
+..0..
+..0..
+..0..
+.000.
+..0..
+
 =======
 LEGEND
 =======
@@ -131,12 +185,22 @@ LEGEND
 . = Background
 # = Wall
 X = Exit
+& = LockedDoor
+* = Key
+
+One = OneNormal or OneKey
+Two = TwoNormal or TwoKey
+Three = ThreeNormal or ThreeKey
+
+NotOne = Two or Three
+NotTwo = One or Three
+NotThree = One or Two
 
 Player = One or Two or Three
 
-1 = One
-2 = Two
-3 = Three
+1 = OneNormal
+2 = TwoNormal
+3 = ThreeNormal
 
 A = OneGate
 B = TwoGate
@@ -145,9 +209,10 @@ C = ThreeGate
 + = Plus
 - = Minus
 
-NotOne = Two or Three
-NotTwo = One or Three
-NotThree = One or Two
+< = ForceLeft
+> = ForceRight
+^ = ForceUp
+v = ForceDown
 
 =======
 SOUNDS
@@ -156,14 +221,17 @@ SOUNDS
 sfx0 41614303 (Death)
 sfx1 71003703 (Grow)
 sfx2 12761303 (Shrink)
+sfx3 43935500 (Key pickup)
+sfx4 76144502 (Door unlock)
 
 ================
 COLLISIONLAYERS
 ================
 
 Background
-OneGate, TwoGate, ThreeGate, Plus, Minus, Exit
-Player, Wall, Dead
+ForceLeft, ForceRight, ForceUp, ForceDown
+OneGate, TwoGate, ThreeGate, Plus, Minus, Exit, Key
+Player, Dead, DeadKey, Wall, LockedDoor
 
 ======
 RULES     
@@ -175,14 +243,41 @@ RULES
 [> NotThree|ThreeGate] -> [NotThree|ThreeGate]
 
 (Grow rules)
-late [One Plus] -> [Two] sfx1
-late [Two Plus] -> [Three] sfx1
-late [Three Plus] -> [Dead] sfx0
+late [OneNormal Plus] -> [TwoNormal] sfx1
+late [TwoNormal Plus] -> [ThreeNormal] sfx1
+late [ThreeNormal Plus] -> [Dead] sfx0
+late [OneKey Plus] -> [TwoKey] sfx1
+late [TwoKey Plus] -> [ThreeKey] sfx1
+late [ThreeKey Plus] -> [DeadKey] sfx0
 
 (Shrink rules)
-late [Three Minus] -> [Two] sfx2
-late [Two Minus] -> [One] sfx2
-late [One Minus] -> [Dead] sfx0
+late [ThreeNormal Minus] -> [TwoNormal] sfx2
+late [TwoNormal Minus] -> [OneNormal] sfx2
+late [OneNormal Minus] -> [Dead] sfx0
+late [ThreeKey Minus] -> [TwoKey] sfx2
+late [TwoKey Minus] -> [OneKey] sfx2
+late [OneKey Minus] -> [DeadKey] sfx0
+
+(Key pickup rules)
+
+late [OneNormal Key] -> [OneKey] sfx3
+late [TwoNormal Key] -> [TwoKey] sfx3
+late [ThreeNormal Key] -> [ThreeKey] sfx3
+
+(Unlock rules)
+[> OneKey|LockedDoor] -> [> OneNormal|] sfx4
+[> TwoKey|LockedDoor] -> [> TwoNormal|] sfx4
+[> ThreeKey|LockedDoor] -> [> ThreeNormal|] sfx4
+
+(Force rules)
+[RIGHT Player ForceLeft] -> [Player ForceLeft]
+[LEFT Player ForceRight] -> [Player ForceRight]
+[DOWN Player ForceUp] -> [Player ForceUp]
+[UP Player ForceDown] -> [Player ForceDown]
+RIGHT [RIGHT Player|ForceLeft] -> [Player|ForceLeft]
+LEFT [LEFT Player|ForceRight] -> [Player|ForceRight]
+DOWN [DOWN Player|ForceUp] -> [Player|ForceUp]
+UP [UP Player|ForceDown] -> [Player|ForceDown]
 
 ==============
 WINCONDITIONS
@@ -195,23 +290,19 @@ All Player on Exit
 LEVELS
 =======
 
-(Level for debugging:
-#########
-#..A..++#
-#..#..++#
-#2.B...X#
-#..#..--#
-#..C..--#
-#########
+(Test level
+###########
+#..A...*++#
+#..#....++#
+#2.B..>..X#
+#..#....--#
+#..&..<.--#
+###########
 )
-
-Message Nobody likes tutorials. Figure it out - I'm sure you're smart.
 
 ##############
 #1..++-+--..X#
 ##############
-
-Message See? Clever as a coconut.
 
 ########
 #..++..#
@@ -221,8 +312,6 @@ Message See? Clever as a coconut.
 #..--..#
 ########
 
-Message Incredible.
-
 ##########
 #.A.#.C..#
 #.#.#.#..#
@@ -230,8 +319,6 @@ Message Incredible.
 #.#.#.#..#
 #.C.#.B..#
 ##########
-
-Message You can't possibly get this next one.
 
 #########
 #C...-#+#
@@ -241,6 +328,24 @@ Message You can't possibly get this next one.
 #X#.C.#+#
 #########
 
-Message Truly brilliant.
+(Trinity)
+###########
+####.+.&&X#
+####B#C####
+#-.C...A.+#
+#*##.1.#*##
+#-.>...<.+#
+###########
 
-Message That's it for now. Maybe I'll make more someday. I might even delete the childish commentary.
+(Loop)
+#########
+##-.....#
+###.#+#.#
+##*.#-#.#
+###^###.#
+#&&2A...#
+#&#^#C#B#
+#X#.*.#*#
+#########
+
+Message That's it for now. Hopefully I'll keep adding more.
